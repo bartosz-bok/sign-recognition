@@ -1,7 +1,6 @@
 # Non-pushed projects paths
 sign_recognition_script/input
 sign_recognition_script/outputs
-sign_recognition_script/src/test.py
 
 # Cache
 __pycache__/
