@@ -1,9 +1,5 @@
 # Sign Recognition using Federated Learning
 
-This project implements Federated Learning using MLOps tools such as:
-* Kubeflow
-* MLFlow
-
 As an example, it was decided to choose a Road Signs Classification task.
 
 
@@ -61,16 +57,24 @@ This repository contains `src/` catalog. But if you want to run this script, be 
 *QUESTIONS*:
 * why we use ready model `mobilenet_v3`
 * what is the difference of `mobilenet_v3_large` and `mobilenet_v3_small`
-* what means `pretrained` flag
-* what means `fine_tune` flag
-* what means `scheduler` flag
+* `pretrained` - wskazuje, czy model powinien zostać zainicjalizowany przy użyciu wag wstępnie wytrenowanych.
+Wagi wstępnie wytrenowane są to parametry modelu, które zostały już wytrenowane na dużej i ogólnej bazie danych,
+zazwyczaj umożliwiając modelowi lepsze radzenie sobie z zadaniami specyficznymi bez konieczności trenowania od zera.
+Użycie wstępnie wytrenowanych wag jest szczególnie pomocne w przypadku, gdy dysponujemy ograniczonymi zasobami danych
+lub obliczeniowymi.
+* `fine_tune` - pozwala na dokładniejsze dostosowanie modelu do konkretnego zadania. Jeśli ta opcja jest
+aktywna, model będzie trenowany (dostrajany) na specyficznych dla zadania danych, co pozwala na dalszą optymalizację
+parametrów modelu, które zostały wstępnie wytrenowane. Dostrajanie może obejmować cały model lub tylko jego część, w
+zależności od potrzeb i dostępnych danych. To pozwala na poprawę skuteczności modelu na bardziej specyficznych danych
+lub zadaniach.
+* `scheduler` -  jest mechanizmem kontrolującym szybkość uczenia się modelu (learning rate) w czasie. W przykładzie
+użyto CosineAnnealingWarmRestarts, który jest rodzajem harmonogramu szybkości uczenia. Harmonogram ten zmniejsza
+szybkość uczenia się według funkcji cosinusowej między pewnymi wartościami maksymalnymi i minimalnymi w określonych
+cyklach, a następnie "restartuje" ten proces, co może pomóc w uniknięciu lokalnych minimów i poprawie ogólnej
+skuteczności trenowania modelu. Parametry T_0 i T_mult określają długość każdego cyklu i sposób, w jaki cykle się
+zmieniają.
 
 ## Federated Learning scenarios
 
 ## Federated Learning implementation
 
-## Kubeflow
-
-### Defining component as docker image
-
-https://medium.com/ubuntu-ai/how-to-build-and-share-components-for-kubeflow-pipelines-86f2c8f40de5

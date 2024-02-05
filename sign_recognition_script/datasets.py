@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader, Subset
 from albumentations.pytorch import ToTensorV2
 
 # Required constants.
-ROOT_DIR = '../input/GTSRB_Final_Training_Images/GTSRB/Final_Training/Images'
+ROOT_DIR = 'input/GTSRB_Final_Training_Images/GTSRB/Final_Training/Images'
 VALID_SPLIT = 0.1
 RESIZE_TO = 224  # Image size of resize when applying transforms.
 BATCH_SIZE = 64
@@ -71,8 +71,10 @@ def get_datasets():
     # Radomize the data indices.
     indices = torch.randperm(len(dataset)).tolist()
     # Training and validation sets.
-    dataset_train = Subset(dataset, indices[:-valid_size])
-    dataset_valid = Subset(dataset_test, indices[-valid_size:])
+    # dataset_train = Subset(dataset, indices[:-valid_size])
+    # dataset_valid = Subset(dataset_test, indices[-valid_size:])
+    dataset_train = Subset(dataset, indices[:100])
+    dataset_valid = Subset(dataset_test, indices[:1200])
 
     return dataset_train, dataset_valid, dataset.classes
 
