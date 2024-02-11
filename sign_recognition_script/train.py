@@ -4,11 +4,13 @@ import torch.nn as nn
 import torch.optim as optim
 
 from src.model import build_model
-from datasets import get_datasets, get_data_loaders
+from src.datasets import get_datasets, get_data_loaders
 from config import config_params
-from utils import save_model, save_plots, train, validate
+from utils import save_model, save_plots, train
 
-seed = 42
+from src.utils import validate
+
+seed = 10
 torch.manual_seed(seed)
 torch.cuda.manual_seed(seed)
 torch.backends.cudnn.deterministic = True
@@ -43,8 +45,11 @@ parser.add_argument(
     help='whether to use scheduler'
 )
 
-
 parser_used = False
+
+# chosen_labels = [0, 1, 2, 3]
+# chosen_labels = [4, 5, 6, 7]
+chosen_labels = [8, 9, 10, 11]
 
 if __name__ == '__main__':
 
@@ -59,7 +64,7 @@ if __name__ == '__main__':
     print(f"[INFO]: Number of validation images: {len(dataset_valid)}")
     print(f"[INFO]: Class names: {dataset_classes}\n")
     # Load the training and validation data loaders.
-    train_loader, valid_loader = get_data_loaders(dataset_train, dataset_valid)
+    train_loader, valid_loader = get_data_loaders(dataset_train, dataset_valid, chosen_labels=chosen_labels)
 
     # Learning_parameters. 
     lr = args['learning_rate']
@@ -123,8 +128,8 @@ if __name__ == '__main__':
         valid_loss.append(valid_epoch_loss)
         train_acc.append(train_epoch_acc)
         valid_acc.append(valid_epoch_acc)
-        print(f"Training loss: {round(train_epoch_loss,3)}, training acc: {round(train_epoch_acc,3)}")
-        print(f"Validation loss: {round(valid_epoch_loss,3)}, validation acc: {round(valid_epoch_acc,3)}")
+        print(f"Training loss: {round(train_epoch_loss, 3)}, training acc: {round(train_epoch_acc, 3)}")
+        print(f"Validation loss: {round(valid_epoch_loss, 3)}, validation acc: {round(valid_epoch_acc, 3)}")
         print('-' * 50)
 
         # Save the trained model weights.
@@ -136,5 +141,5 @@ if __name__ == '__main__':
         train_loss=train_loss,
         valid_loss=valid_loss,
         version=args['version']
-        )
+    )
     print('TRAINING COMPLETE')
