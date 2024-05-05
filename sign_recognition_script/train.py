@@ -47,9 +47,11 @@ parser.add_argument(
 
 parser_used = False
 
-# chosen_labels = [0, 1, 2, 3]
-# chosen_labels = [4, 5, 6, 7]
-chosen_labels = [8, 9, 10, 11]
+# chosen_labels = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+# chosen_labels = [10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+# chosen_labels = [20, 21, 22, 23, 24, 25, 26, 27, 28, 29]
+# chosen_labels = [30, 31, 32, 33, 34, 35, 36, 37, 38, 39]
+chosen_labels = [40, 41, 42]
 
 if __name__ == '__main__':
 

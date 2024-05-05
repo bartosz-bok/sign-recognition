@@ -11,7 +11,7 @@ from params import models_path, BATCH_SIZE_TEST
 
 torch.manual_seed(2)
 
-model_names = ['model_v1', 'model_v2', 'model_v3']
+model_names = ['model_v1', 'model_v2', 'model_v3', 'model_v4', 'model_v5']
 
 device = 'cpu'
 
