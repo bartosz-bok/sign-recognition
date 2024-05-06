@@ -3,12 +3,10 @@ import argparse
 import torch.nn as nn
 import torch.optim as optim
 
-from src.model import build_model
-from src.datasets import get_datasets, get_data_loaders
+from utils import build_model, validate_model
+from datasets import get_datasets, get_data_loaders
 from config import config_params
-from utils import save_model, save_plots, train
-
-from src.utils import validate
+from utils import save_model, save_plots, train_model
 
 seed = 10
 torch.manual_seed(seed)
@@ -44,14 +42,20 @@ parser.add_argument(
     '-us', '--use-scheduler', dest='use_scheduler', action='store_true',
     help='whether to use scheduler'
 )
+parser.add_argument(
+    '-l', '--labels-set', dest='labels_set', type=int, default=1,
+    help='Set of labels to use for training'
+)
 
-parser_used = False
+parser_used = True
 
-# chosen_labels = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-# chosen_labels = [10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
-# chosen_labels = [20, 21, 22, 23, 24, 25, 26, 27, 28, 29]
-# chosen_labels = [30, 31, 32, 33, 34, 35, 36, 37, 38, 39]
-chosen_labels = [40, 41, 42]
+labels_set = {
+    1: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+    2: [10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
+    3: [20, 21, 22, 23, 24, 25, 26, 27, 28, 29],
+    4: [30, 31, 32, 33, 34, 35, 36, 37, 38, 39],
+    5: [40, 41, 42]
+}
 
 if __name__ == '__main__':
 
@@ -62,9 +66,11 @@ if __name__ == '__main__':
 
     # Load the training and validation datasets.
     dataset_train, dataset_valid, dataset_classes = get_datasets()
-    print(f"[INFO]: Number of training images: {len(dataset_train)}")
-    print(f"[INFO]: Number of validation images: {len(dataset_valid)}")
-    print(f"[INFO]: Class names: {dataset_classes}\n")
+    print(f"[INFO].py: Number of training images: {len(dataset_train)}")
+    print(f"[INFO].py: Number of validation images: {len(dataset_valid)}")
+    print(f"[INFO].py: Class names: {dataset_classes}\n")
+    chosen_labels = labels_set[args['labels_set']]
+
     # Load the training and validation data loaders.
     train_loader, valid_loader = get_data_loaders(dataset_train, dataset_valid, chosen_labels=chosen_labels)
 
@@ -111,8 +117,8 @@ if __name__ == '__main__':
     train_acc, valid_acc = [], []
     # Start the training.
     for epoch in range(epochs):
-        print(f"[INFO]: Epoch {epoch + 1} of {epochs}")
-        train_epoch_loss, train_epoch_acc = train(
+        print(f"[INFO].py: Epoch {epoch + 1} of {epochs}")
+        train_epoch_loss, train_epoch_acc = train_model(
             model=model,
             trainloader=train_loader,
             optimizer=optimizer,
@@ -121,11 +127,11 @@ if __name__ == '__main__':
             scheduler=scheduler,
             epoch=epoch
         )
-        valid_epoch_loss, valid_epoch_acc = validate(model=model,
-                                                     testloader=valid_loader,
-                                                     criterion=criterion,
-                                                     class_names=dataset_classes,
-                                                     device=device)
+        valid_epoch_loss, valid_epoch_acc = validate_model(model=model,
+                                                           testloader=valid_loader,
+                                                           criterion=criterion,
+                                                           class_names=dataset_classes,
+                                                           device=device)
         train_loss.append(train_epoch_loss)
         valid_loss.append(valid_epoch_loss)
         train_acc.append(train_epoch_acc)
@@ -144,4 +150,4 @@ if __name__ == '__main__':
         valid_loss=valid_loss,
         version=args['version']
     )
-    print('TRAINING COMPLETE')
+    print('Training complete.')

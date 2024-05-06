@@ -3,9 +3,8 @@ import os
 import torch
 import torch.nn as nn
 
-from src.model import build_model
-from src.datasets import get_datasets, get_data_loaders
-from src.utils import validate
+from sign_recognition_script.utils import build_model, validate_model
+from sign_recognition_script.datasets import get_datasets, get_data_loaders
 from utils import extract_epoch_number, print_pretty
 from params import models_path, BATCH_SIZE_TEST
 
@@ -73,8 +72,7 @@ if __name__ == '__main__':
             central_network.load_state_dict(aggregated_weights)
 
         # Load the training and validation datasets.
-        dataset_train, dataset_valid, dataset_classes = get_datasets(root_dir=os.path.join('..',
-                                                                                           'sign_recognition_script',
+        dataset_train, dataset_valid, dataset_classes = get_datasets(root_dir=os.path.join('sign_recognition_script',
                                                                                            'input',
                                                                                            'GTSRB_Final_Training_Images',
                                                                                            'GTSRB',
@@ -89,8 +87,8 @@ if __name__ == '__main__':
         criterion = nn.CrossEntropyLoss()
 
         # Test central network
-        _, valid_epoch_acc = validate(model=central_network,
-                                      testloader=valid_loader,
-                                      criterion=criterion,
-                                      class_names=dataset_classes,
-                                      device=device)
+        _, valid_epoch_acc = validate_model(model=central_network,
+                                            testloader=valid_loader,
+                                            criterion=criterion,
+                                            class_names=dataset_classes,
+                                            device=device)

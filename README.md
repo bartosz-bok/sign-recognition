@@ -55,7 +55,7 @@ If you want to run training script, be sure, that you have directory structure a
 Run script to train models:
 ```bash
 source config.sh
-python3 sign_recognition_script/src/train.py --pretrained --fine-tune --epochs $EPOCHS --learning-rate $LEARNING_RATE
+python3 sign_recognition_script/train.py --pretrained --fine-tune --epochs $EPOCHS --learning-rate $LEARNING_RATE
 ```
 
 *QUESTIONS* (answers in polish to better understanding):
