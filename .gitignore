@@ -1,6 +1,5 @@
 # Non-pushed projects paths
-sign_recognition_script/input
-sign_recognition_script/outputs
+dataset/
 
 # Cache
 __pycache__/
@@ -13,9 +12,6 @@ dist/
 .venv
 env/
 venv/
-ENV/
-env.bak/
-venv.bak/
 
 # PyCharm
 .idea/
