@@ -1,14 +1,7 @@
 import os
 
 import torch
-import torch.nn as nn
-import torch.optim as optim
-
-import torchvision.models as models
-from torchvision.models.mobilenetv3 import MobileNet_V3_Large_Weights
-
-import matplotlib
-import matplotlib.pyplot as plt
+from torch.utils.data import DataLoader
 
 from tqdm.auto import tqdm
 
@@ -28,6 +21,18 @@ class CentralModel:
                  local_model_names: list[str] = None,
                  importance_of_local_models: str = 'equal',
                  ):
+        """
+        Initializes the CentralModel instance with the specified parameters.
+
+        :param local_models_dir: Directory where local models are stored.
+        :param central_model_dir: Directory where the central model will be saved.
+        :param scenario: Scenario type for model aggregation. Options are 'static_federate' and 'dynamic_federate'.
+        :param device: Device to use for computations. Defaults to GPU if available, else CPU.
+        :param num_classes: Number of classes for classification.
+        :param name: Name of the central model for identification.
+        :param local_model_names: List of names for the local models.
+        :param importance_of_local_models: Strategy to weigh local models during aggregation. Default is 'equal'.
+        """
 
         if local_model_names is None:
             local_model_names = ['']
@@ -53,7 +58,14 @@ class CentralModel:
 
     def validate(self,
                  testloader,
-                 class_names):
+                 class_names: list[str]) -> (list, list):
+        """
+        Validate the central model using a test data loader.
+
+        :param testloader: The DataLoader for test data.
+        :param class_names: List of class names corresponding to label indices.
+        :return: A tuple containing the average loss and accuracy for the validation dataset.
+        """
         self.model.eval()
         print('Model validation')
         valid_running_loss = 0.0
@@ -98,15 +110,26 @@ class CentralModel:
         print('\n')
         return epoch_loss, epoch_acc
 
-    def _model_path(self):
+    def _model_path(self) -> os.path:
+        """
+        Constructs the file path for saving the central model based on its name and directory.
+
+        :return: The full file path for the model.
+        """
         return os.path.join(self.central_model_dir, f'{self.name}.pth')
 
-    def save(self):
+    def save(self) -> None:
+        """
+        Saves the central model's state dictionary to a file in the designated directory.
+        """
         os.makedirs(self.central_model_dir, exist_ok=True)
         torch.save({'model_state_dict': self.model.state_dict()}, self._model_path())
         print(f"[INFO] Model {self.name}.pth saved!")
 
-    def load_central_model(self):
+    def load_central_model(self) -> None:
+        """
+        Loads the central model's state dictionary from a file.
+        """
         model_path = self._model_path()
         print(f"[INFO] Loading model {self.name}.pth from '{self.central_model_dir}'...")
         if not os.path.exists(model_path):
@@ -115,8 +138,12 @@ class CentralModel:
         self.model.load_state_dict(checkpoint['model_state_dict'])
         print(f"[INFO] Model {self.name}.pth loaded successfully!")
 
-    def update_central_model(self, epoch: int):
+    def update_central_model(self, epoch: int) -> None:
+        """
+        Updates the central model by aggregating weights from local models according to the specified scenario.
 
+        :param epoch: Current epoch number to load specific model snapshots.
+        """
         if self.scenario == 'static_federate':
             self.update_central_model_based_on_static_federate_scenario(epoch=epoch)
         elif self.scenario == 'dynamic_federate':
@@ -124,7 +151,12 @@ class CentralModel:
         else:
             raise ValueError(f'Scenario {self.scenario} is not supported!')
 
-    def update_central_model_based_on_static_federate_scenario(self, epoch: int):
+    def update_central_model_based_on_static_federate_scenario(self, epoch: int) -> None:
+        """
+        Updates the central model based on a static federated scenario using the specific epoch.
+
+        :param epoch: Epoch number to load specific local model snapshots for aggregation.
+        """
         self.load_local_models_from_specific_epoch(epoch=epoch)
         # Get the smallest max epoch from models
         max_epochs = min(max(extract_epoch_number(file) for file in files)
@@ -155,7 +187,11 @@ class CentralModel:
 
     def load_local_model(self, version: int, epoch: int = None) -> LocalModel:
         """
-        Function to load a local model from disk.
+        Loads a specific version of a local model, optionally at a specified epoch.
+
+        :param version: Version number of the local model to load.
+        :param epoch: Epoch number to load the model from. Defaults to the latest available epoch.
+        :return: The loaded local model.
         """
         local_model_name = f'model_v{version}'
         model_dir = os.path.join(self.local_models_dir, local_model_name)
@@ -179,6 +215,11 @@ class CentralModel:
         return local_model
 
     def load_local_models_from_specific_epoch(self, epoch: int) -> None:
+        """
+        Loads all local models from a specific epoch.
+
+        :param epoch: Epoch number from which to load local models.
+        """
         self.update_model_names_for_each_epoch_dict()
 
         epoch_suffix = f'_epoch_{epoch}.pth'
@@ -189,7 +230,10 @@ class CentralModel:
             if model_name.endswith(epoch_suffix)
         ]
 
-    def update_model_names_for_each_epoch_dict(self):
+    def update_model_names_for_each_epoch_dict(self) -> None:
+        """
+        Updates the dictionary that maps local model names to their available epochs based on the current local model names list.
+        """
         self.model_names_for_each_epoch = {}
         for local_model_name in self.local_model_names:
             single_model_path = os.path.join(self.local_models_dir, local_model_name)
@@ -200,7 +244,10 @@ class CentralModel:
             ]
         print_pretty(models_dict=self.model_names_for_each_epoch)
 
-    def get_importance_of_models(self):
+    def get_importance_of_models(self) -> None:
+        """
+        Determines the importance weights for local models based on the specified importance strategy.
+        """
         if self.importance_of_local_models == 'equal':
             # Every local model has same weight
             self.model_weights = [1 / len(self.local_model_names) for _ in range(len(self.local_model_names))]
