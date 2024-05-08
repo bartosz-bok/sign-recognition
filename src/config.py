@@ -1,6 +1,6 @@
 train_model_config_params = {
     'version': 1,
-    'epochs': 2,
+    'epochs': 3,
     'learning_rate': 0.001,
     'pretrained': True,
     'fine_tune': True,

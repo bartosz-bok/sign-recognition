@@ -18,7 +18,6 @@ class CentralModel:
                  device: str = ('cuda' if torch.cuda.is_available() else 'cpu'),
                  num_classes: int = 1,
                  name: str = 'central_model',
-                 local_model_names: list[str] = None,
                  importance_of_local_models: str = 'equal',
                  ):
         """
@@ -30,17 +29,15 @@ class CentralModel:
         :param device: Device to use for computations. Defaults to GPU if available, else CPU.
         :param num_classes: Number of classes for classification.
         :param name: Name of the central model for identification.
-        :param local_model_names: List of names for the local models.
         :param importance_of_local_models: Strategy to weigh local models during aggregation. Default is 'equal'.
         """
-
-        if local_model_names is None:
-            local_model_names = ['']
 
         self.model = LocalModel(
             num_classes=num_classes,
             device=device,
-        ).to(device).model
+        )
+        self.model.to(device)
+        self.model = self.model.model
 
         # Set params
         self.local_models_dir = local_models_dir
@@ -49,7 +46,7 @@ class CentralModel:
         self.device = device
         self.num_classes = num_classes
         self.name = name
-        self.local_model_names = local_model_names
+        self.local_model_names = None
         self.importance_of_local_models = importance_of_local_models
         self.model_names_for_each_epoch = {}
         self.model_weights = None
@@ -118,13 +115,7 @@ class CentralModel:
         """
         return os.path.join(self.central_model_dir, f'{self.name}.pth')
 
-    def save(self) -> None:
-        """
-        Saves the central model's state dictionary to a file in the designated directory.
-        """
-        os.makedirs(self.central_model_dir, exist_ok=True)
-        torch.save({'model_state_dict': self.model.state_dict()}, self._model_path())
-        print(f"[INFO] Model {self.name}.pth saved!")
+
 
     def load_central_model(self) -> None:
         """
@@ -253,3 +244,11 @@ class CentralModel:
             self.model_weights = [1 / len(self.local_model_names) for _ in range(len(self.local_model_names))]
         else:
             raise ValueError(f'{self.importance_of_local_models} importance is not supported!')
+
+    def save(self) -> None:
+        """
+        Saves the central model's state dictionary to a file in the designated directory.
+        """
+        os.makedirs(self.central_model_dir, exist_ok=True)
+        torch.save({'model_state_dict': self.model.state_dict()}, self._model_path())
+        print(f"[INFO] Model {self.name}.pth saved!")
