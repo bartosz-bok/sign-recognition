@@ -12,6 +12,8 @@ import matplotlib.pyplot as plt
 
 from tqdm.auto import tqdm
 
+from src.utils import extract_epoch_number
+
 
 class LocalModel:
 
@@ -23,35 +25,37 @@ class LocalModel:
                  epoch: int = 0,
                  optimizer: optim = optim.Adam,
                  criterion=nn.CrossEntropyLoss(),
+                 scheduler: torch.optim.lr_scheduler = None,
                  device: str = ('cuda' if torch.cuda.is_available() else 'cpu'),
                  version: int = 0,
                  ):
         if pretrained:
-            print('[INFO].py: Loading pre-trained weights')
+            print('[INFO] Loading pre-trained weights')
             weights = MobileNet_V3_Large_Weights.DEFAULT
         else:
-            print('[INFO].py: Not loading pre-trained weights')
+            print('[INFO] Not loading pre-trained weights')
             weights = None
 
         self.model = models.mobilenet_v3_large(weights=weights)
 
         if fine_tune:
-            print('[INFO].py: Fine-tuning all layers...')
+            print('[INFO] Fine-tuning all layers...')
             for params in self.model.parameters():
                 params.requires_grad = True
         elif not fine_tune:
-            print('[INFO].py: Freezing hidden layers...')
+            print('[INFO] Freezing hidden layers...')
             for params in self.model.parameters():
                 params.requires_grad = False
 
         # Change the final classification head.
         self.model.classifier[3] = nn.Linear(in_features=1280, out_features=num_classes)
 
-        # Set model hiper-params
+        # Set model hiperparams
         self.lr = lr
         self.epoch = epoch
         self.optimizer = optimizer(self.model.parameters(), lr=self.lr)
         self.criterion = criterion
+        self.scheduler = scheduler
         self.device = device
         self.version = version
         self.name = f'model_v{self.version}'
@@ -66,11 +70,10 @@ class LocalModel:
         self.model.to(device)
 
     def train_one_epoch(self,
-                        trainloader,
-                        scheduler=None
+                        trainloader
                         ):
         self.model.train()
-        print(f'Model training: epoch {self.epoch}')
+        print(f'Model training: epoch {self.epoch + 1}')
         train_running_loss = 0.0
         train_running_correct = 0
         counter = 0
@@ -94,8 +97,8 @@ class LocalModel:
             # Update the weights.
             self.optimizer.step()
 
-            if scheduler is not None:
-                scheduler.step(self.epoch + i / iters)
+            if self.scheduler is not None:
+                self.scheduler.step(self.epoch + i / iters)
 
         self.epoch += 1
 
@@ -151,11 +154,48 @@ class LocalModel:
         print('\n')
         return epoch_loss, epoch_acc
 
-    def save(self) -> None:
+    def save(self, models_dir: str = 'models') -> None:
         """
         Function to save the trained model to disk.
         """
-        model_path = os.path.join('models', self.name)
+        model_path = os.path.join(models_dir, self.name)
         os.makedirs(model_path, exist_ok=True)
-        torch.save(self.model.state_dict(), os.path.join(model_path, f"{self.name}_epoch_{self.epoch}.pth"))
-        print(f"model {self.name}_epoch_{self.epoch}.pth saved!")
+        model_name_with_epoch = f"{self.name}_epoch_{self.epoch}.pth"
+
+        artifacts_to_save = {
+            'model_state_dict': self.model.state_dict(),
+            'optimizer_state_dict': self.optimizer.state_dict(),
+            'scheduler_state_dict': self.scheduler.state_dict() if self.scheduler is not None else None
+        }
+
+        torch.save(artifacts_to_save, os.path.join(model_path, model_name_with_epoch))
+
+        print(f"[INFO] Model {model_name_with_epoch} saved!")
+
+    def load(self, epoch: int = None, models_dir: str = 'models') -> None:
+        """
+        Function to load a trained model from disk.
+        """
+        model_dir = os.path.join(models_dir, self.name)
+        print(f"[INFO] Loading model for '{self.name}' from '{model_dir}'...")
+
+        if epoch is None:
+            # Automatically determine the latest epoch model to load.
+            model_files = [f for f in os.listdir(model_dir) if
+                           f.startswith(f'{self.name}_epoch_') and f.endswith('.pth')]
+            epoch = max(extract_epoch_number(f) for f in model_files)
+            print(f"[INFO] No epoch provided, loading latest epoch: {epoch}")
+
+        model_path = os.path.join(model_dir, f"{self.name}_epoch_{epoch}.pth")
+        if not os.path.exists(model_path):
+            raise FileNotFoundError(f"No model file found at '{model_path}'")
+
+        # Load the model checkpoint.
+        checkpoint = torch.load(model_path)
+        self.model.load_state_dict(checkpoint['model_state_dict'])
+        self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        if self.scheduler is not None:
+            self.scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+        self.epoch = epoch
+        print(f"[INFO] Model loaded successfully: {self.name}_epoch_{self.epoch}")
+

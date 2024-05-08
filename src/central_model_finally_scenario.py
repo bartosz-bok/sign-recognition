@@ -4,11 +4,11 @@ import argparse
 import torch
 import torch.nn as nn
 
-from federated_scripts.local_model import LocalModel
-from federated_scripts.utils import save_plots
-from federated_scripts.datasets import get_datasets, get_data_loaders
+from src.local_model import LocalModel
+from src.utils import save_plots
+from src.datasets import get_datasets, get_data_loaders
 from utils import extract_epoch_number, print_pretty
-from federated_scripts.config import config_params
+from src.config import config_params
 
 torch.manual_seed(2)
 

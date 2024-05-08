@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 
 matplotlib.style.use('ggplot')
 
+
 def extract_epoch_number(filename):
     """
     Extracts the epoch number from a model file name.

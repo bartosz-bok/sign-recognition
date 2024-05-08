@@ -15,3 +15,7 @@ venv/
 
 # PyCharm
 .idea/
+
+# Results
+*.png
+*.pth
