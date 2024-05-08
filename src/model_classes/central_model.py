@@ -98,33 +98,19 @@ class CentralModel:
         print('\n')
         return epoch_loss, epoch_acc
 
-    def save(self) -> None:
-        """
-        Function to save central model to disk.
-        """
+    def _model_path(self):
+        return os.path.join(self.central_model_dir, f'{self.name}.pth')
+
+    def save(self):
         os.makedirs(self.central_model_dir, exist_ok=True)
-
-        artifacts_to_save = {
-            'model_state_dict': self.model.state_dict(),
-            'optimizer_state_dict': None,
-            'scheduler_state_dict': None
-        }
-
-        torch.save(artifacts_to_save, os.path.join(self.central_model_dir, f'{self.name}.pth'))
-
+        torch.save({'model_state_dict': self.model.state_dict()}, self._model_path())
         print(f"[INFO] Model {self.name}.pth saved!")
 
     def load_central_model(self):
-        """
-        Function to load a trained model from disk.
-        """
-        model_path = os.path.join(self.central_model_dir, f'{self.name}.pth')
+        model_path = self._model_path()
         print(f"[INFO] Loading model {self.name}.pth from '{self.central_model_dir}'...")
-
         if not os.path.exists(model_path):
             raise FileNotFoundError(f"No model file found at '{model_path}'")
-
-        # Load the model checkpoint.
         checkpoint = torch.load(model_path)
         self.model.load_state_dict(checkpoint['model_state_dict'])
         print(f"[INFO] Model {self.name}.pth loaded successfully!")
@@ -132,35 +118,40 @@ class CentralModel:
     def update_central_model(self, epoch: int):
 
         if self.scenario == 'static_federate':
-            # Get the smallest max epoch from models
-            max_epochs = min(max(extract_epoch_number(file) for file in files)
-                             for files in self.model_names_for_each_epoch.values())
-            print(f'The smallest max epoch number in given models: {max_epochs}.')
-
-            aggregated_weights = None
-            for model_idx, model_name in enumerate(self.local_model_names):
-                model_path = os.path.join(self.local_models_dir, model_name, f'{model_name}_epoch_{epoch}.pth')
-                if os.path.exists(model_path):
-                    network_state_dict = torch.load(model_path, map_location=torch.device(self.device))
-                    tmp_local_model.model.load_state_dict(network_state_dict)
-
-                    if aggregated_weights is None:
-                        aggregated_weights = {key: val.clone() * self.model_weights[model_idx] for key, val in
-                                              tmp_local_model.model.state_dict().items()}
-                    else:
-                        for key, val in tmp_local_model.model.state_dict().items():
-                            aggregated_weights[key] += val * self.model_weights[model_idx]
-                else:
-                    raise ValueError(f"Given model path ({model_path}) doesn't exist!")
-
-            # Update of central network weights
-            if aggregated_weights is not None:
-                self.model.load_state_dict(aggregated_weights)
-
+            self.update_central_model_based_on_static_federate_scenario(epoch=epoch)
         elif self.scenario == 'dynamic_federate':
             pass
         else:
             raise ValueError(f'Scenario {self.scenario} is not supported!')
+
+    def update_central_model_based_on_static_federate_scenario(self, epoch: int):
+        self.load_local_models_from_specific_epoch(epoch=epoch)
+        # Get the smallest max epoch from models
+        max_epochs = min(max(extract_epoch_number(file) for file in files)
+                         for files in self.model_names_for_each_epoch.values())
+        print(f'The smallest max epoch number in given models: {max_epochs}.')
+
+        tmp_local_model = LocalModel(num_classes=self.num_classes, device=self.device).to(self.device)
+
+        aggregated_weights = None
+        for model_idx, model_name in enumerate(self.local_model_names):
+            model_path = os.path.join(self.local_models_dir, model_name, f'{model_name}_epoch_{epoch}.pth')
+            if os.path.exists(model_path):
+                network_state_dict = torch.load(model_path, map_location=torch.device(self.device))
+                tmp_local_model.model.load_state_dict(network_state_dict)
+
+                if aggregated_weights is None:
+                    aggregated_weights = {key: val.clone() * self.model_weights[model_idx] for key, val in
+                                          tmp_local_model.model.state_dict().items()}
+                else:
+                    for key, val in tmp_local_model.model.state_dict().items():
+                        aggregated_weights[key] += val * self.model_weights[model_idx]
+            else:
+                raise ValueError(f"Given model path ({model_path}) doesn't exist!")
+
+        # Update of central network weights
+        if aggregated_weights is not None:
+            self.model.load_state_dict(aggregated_weights)
 
     def load_local_model(self, version: int, epoch: int = None) -> LocalModel:
         """
@@ -190,9 +181,13 @@ class CentralModel:
     def load_local_models_from_specific_epoch(self, epoch: int) -> None:
         self.update_model_names_for_each_epoch_dict()
 
-        self.local_models = []
-
-        self.local_models.append(...)
+        epoch_suffix = f'_epoch_{epoch}.pth'
+        self.local_model_names = [
+            model_name
+            for model_list in self.model_names_for_each_epoch.values()
+            for model_name in model_list
+            if model_name.endswith(epoch_suffix)
+        ]
 
     def update_model_names_for_each_epoch_dict(self):
         self.model_names_for_each_epoch = {}
